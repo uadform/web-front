@@ -1,7 +1,7 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
-using System.Text;
+using System.Net;
+using web_front.DTOs.Responses;
 using web_front.Models;
 using web_front.Models.DTO;
 
@@ -10,21 +10,24 @@ namespace web_front.Controllers
     public class ItemController : Controller
     {
         private readonly IHttpClientFactory _httpClientFactory;
+
         public ItemController(IHttpClientFactory httpClientFactory)
         {
             _httpClientFactory = httpClientFactory;
         }
+
         // GET: ItemController
         public async Task<ActionResult> Index()
         {
             using HttpClient client = _httpClientFactory.CreateClient();
 
             var request = new HttpRequestMessage(HttpMethod.Get, new Uri("https://localhost:7025/Item/GetItems"));
-            var response = client.Send(request);
+            var response = await client.SendAsync(request);
+
+            string responseBody = await response.Content.ReadAsStringAsync();
 
             if (response.IsSuccessStatusCode)
             {
-                string responseBody = await response.Content.ReadAsStringAsync();
                 List<Item> itemData = JsonConvert.DeserializeObject<List<Item>>(responseBody);
                 var items = new List<ItemDto>();
                 foreach (var item in items)
@@ -36,9 +39,11 @@ namespace web_front.Controllers
             }
             else
             {
+                var error = JsonConvert.DeserializeObject<ErrorResponse>(responseBody);
+                ViewBag.Error = error;
                 return View();
             }
-            
+
         }
         public ActionResult Create()
         {
@@ -78,6 +83,7 @@ namespace web_front.Controllers
             }
             return View();
         }
+
         // GET: ItemController/Edit/5
         public async Task<ActionResult> Edit(int id)
         {
